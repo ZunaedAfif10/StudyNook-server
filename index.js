@@ -33,7 +33,15 @@ async function run() {
       res.json(result);
     })
 
-    
+    app.get('/rooms/:id', async(req,res) => {
+       const { id } = req.params;
+      console.log(id)
+      const result = await roomsCollection.findOne({
+        _id: new ObjectId(id),
+      });
+
+      res.json(result);
+    })
 
     app.post("/rooms", async (req, res) => {
       const roomsdata = req.body;
