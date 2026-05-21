@@ -51,29 +51,46 @@ async function run() {
 
       res.json(result);
     });
-    
-    
+
+
     app.post("/rooms", async (req, res) => {
       const roomsdata = req.body;
       // console.log(roomsdata);
       const result = await roomsCollection.insertOne(roomsdata);
-      
+
       res.json(result);
     });
-    
+
     app.get("/bookings/:userId", async (req, res) => {
-    const { userId } = req.params;
+      const { userId } = req.params;
 
       const result = await bookingCollection.find({ user_Id: userId }).toArray();
 
       res.json(result);
     });
-    
+
+    app.patch("/bookings/:id", async (req, res) => {
+      const { id } = req.params;
+
+
+
+      const result = await bookingCollection.updateOne(
+        { _id: new ObjectId(id) },
+        {
+          $set: {
+                status: "cancelled"
+            }
+        }
+      );
+
+      res.json(result);
+    });
+
     app.post('/bookings', async (req, res) => {
       const bookingData = req.body;
-      const {roomName, date, startTime, endTime } = bookingData
+      const { roomName, date, startTime, endTime } = bookingData
       // console.log(date,startTime,endTime)
-      
+
       const conflict = await bookingCollection.findOne({
         roomName,
         date,
