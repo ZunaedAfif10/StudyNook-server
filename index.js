@@ -2,6 +2,7 @@ const express = require('express')
 const dontenv = require("dotenv");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 dontenv.config()
 const app = express()
 
@@ -20,6 +21,28 @@ const client = new MongoClient(uri, {
   },
 });
 
+const JWKS = createRemoteJWKSet(new URL(`http://localhost:3000/api/auth/jwks`));
+
+const verifyToken = async (req, res, next) => {
+  const authHeader = req?.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    console.log(payload);
+    next();
+  }
+  catch (error) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+};
+
 
 async function run() {
   try {
@@ -34,7 +57,7 @@ async function run() {
       res.json(result);
     })
 
-    app.get('/rooms/:id', async (req, res) => {
+    app.get('/rooms/:id', verifyToken, async (req, res) => {
       const { id } = req.params;
       // console.log(id)
       const result = await roomsCollection.findOne({
@@ -44,7 +67,7 @@ async function run() {
       res.json(result);
     })
 
-    app.get("/listing/:userId", async (req, res) => {
+    app.get("/listing/:userId",verifyToken, async (req, res) => {
       const { userId } = req.params;
 
       const result = await roomsCollection.find({ user_Id: userId }).toArray();
@@ -53,7 +76,7 @@ async function run() {
     });
 
 
-    app.post("/rooms", async (req, res) => {
+    app.post("/rooms",verifyToken, async (req, res) => {
       const roomsdata = req.body;
       // console.log(roomsdata);
       const result = await roomsCollection.insertOne(roomsdata);
@@ -61,7 +84,7 @@ async function run() {
       res.json(result);
     });
 
-    app.get("/bookings/:userId", async (req, res) => {
+    app.get("/bookings/:userId",verifyToken, async (req, res) => {
       const { userId } = req.params;
 
       const result = await bookingCollection.find({ user_Id: userId }).toArray();
@@ -69,24 +92,45 @@ async function run() {
       res.json(result);
     });
 
-    app.patch("/bookings/:id", async (req, res) => {
+    app.delete("/rooms/:id",verifyToken, async (req, res) => {
       const { id } = req.params;
+      console.log(id)
+      const result = await roomsCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.json(result);
+    });
+
+    app.patch("/rooms/:id",verifyToken, async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+      // console.log(updatedData);
+
+      const result = await roomsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: updatedData },
+      );
+
+      res.json(result);
+    });
 
 
+    app.patch("/bookings/:id",verifyToken, async (req, res) => {
+      const { id } = req.params;
 
       const result = await bookingCollection.updateOne(
         { _id: new ObjectId(id) },
         {
           $set: {
-                status: "cancelled"
-            }
+            status: "cancelled"
+          }
         }
       );
 
       res.json(result);
     });
 
-    app.post('/bookings', async (req, res) => {
+    app.post('/bookings',verifyToken, async (req, res) => {
       const bookingData = req.body;
       const { roomName, date, startTime, endTime } = bookingData
       // console.log(date,startTime,endTime)
