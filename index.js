@@ -57,6 +57,15 @@ async function run() {
       res.json(result);
     })
 
+
+    app.get('/rooms/featured', async (req, res) => {
+      const result = await roomsCollection.find()
+      .sort({ createdAt: -1 }) 
+      .limit(6).toArray();
+      // console.log(result)              
+      res.json(result);
+    })
+
     app.get('/rooms/:id', verifyToken, async (req, res) => {
       const { id } = req.params;
       // console.log(id)
