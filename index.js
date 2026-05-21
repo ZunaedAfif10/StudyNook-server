@@ -26,6 +26,7 @@ async function run() {
     await client.connect();
     const db = client.db("studynook");
     const roomsCollection = db.collection("rooms");
+    const bookingCollection = db.collection("bookings");
 
 
     app.get('/rooms', async (req, res) => {
@@ -35,7 +36,7 @@ async function run() {
 
     app.get('/rooms/:id', async (req, res) => {
       const { id } = req.params;
-      console.log(id)
+      // console.log(id)
       const result = await roomsCollection.findOne({
         _id: new ObjectId(id),
       });
@@ -53,11 +54,42 @@ async function run() {
 
     app.post("/rooms", async (req, res) => {
       const roomsdata = req.body;
-      console.log(roomsdata);
+      // console.log(roomsdata);
       const result = await roomsCollection.insertOne(roomsdata);
 
       res.json(result);
     });
+
+    app.post('/bookings', async (req, res) => {
+      const bookingData = req.body;
+      const { date, startTime, endTime } = bookingData
+      // console.log(date,startTime,endTime)
+      
+      const conflict = await bookingCollection.findOne({
+        date,
+        $and: [
+          {
+            startTime: { $lt: endTime },
+          },
+          {
+            endTime: { $gt: startTime },
+          },
+        ],
+      });
+
+      if (conflict) {
+        return res.status(400).json({
+          message: "Time slot already booked",
+        });
+      }
+
+      const result = await bookingCollection.insertOne(bookingData);
+
+      res.json({
+        message: "Booking successful",
+        result,
+      });
+    })
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
