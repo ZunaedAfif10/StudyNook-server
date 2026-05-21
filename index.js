@@ -28,13 +28,13 @@ async function run() {
     const roomsCollection = db.collection("rooms");
 
 
-    app.get('/rooms', async(req,res) => {
+    app.get('/rooms', async (req, res) => {
       const result = await roomsCollection.find().toArray();
       res.json(result);
     })
 
-    app.get('/rooms/:id', async(req,res) => {
-       const { id } = req.params;
+    app.get('/rooms/:id', async (req, res) => {
+      const { id } = req.params;
       console.log(id)
       const result = await roomsCollection.findOne({
         _id: new ObjectId(id),
@@ -42,6 +42,14 @@ async function run() {
 
       res.json(result);
     })
+
+    app.get("/listing/:userId", async (req, res) => {
+      const { userId } = req.params;
+
+      const result = await roomsCollection.find({ user_Id: userId }).toArray();
+
+      res.json(result);
+    });
 
     app.post("/rooms", async (req, res) => {
       const roomsdata = req.body;
@@ -61,10 +69,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req,res) => {
-    res.send("Server is running fine")
+app.get('/', (req, res) => {
+  res.send("Server is running fine")
 })
 
-app.listen(PORT, ()=>{
-    console.log(PORT)
+app.listen(PORT, () => {
+  console.log(PORT)
 })
